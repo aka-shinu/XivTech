@@ -87,4 +87,3 @@ npm run build
 - [ ] User preferences and watchlists
 - [ ] More detailed market analysis
 
-Feel free to explore the code and let me know if you have any questions! 😊 

@@ -1,7 +1,6 @@
 # Real-Time Crypto Price Tracker
 
 Hey there! 👋 This is my implementation of a real-time cryptocurrency price tracker built with React, Redux Toolkit, and Binance WebSocket API. The application provides live price updates and interactive charts for major cryptocurrencies.
-
 <div align='center'>
 <span><a href='https://raw.githubusercontent.com//aka-shinu/XivTech/main/public/demo.mp4'>Video</a></span>
 </div>&nbsp;

@@ -1,6 +1,9 @@
 # Crypto Price Tracker
 
 Hey there! 👋 This is my implementation of a cryptocurrency price tracker built with React and Redux Toolkit. It was created as part of an assignment to demonstrate real-time data handling and state management.
+<div align='center'>
+<span><a href='https://raw.githubusercontent.com//aka-shinu/XivTech/main/public/demo.mp4'>Video</a></span>
+</div>&nbsp;
 
 ## What's Inside?
 

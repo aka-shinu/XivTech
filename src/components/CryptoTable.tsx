@@ -1,10 +1,13 @@
+import React, { useState, useMemo } from 'react';
 import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import styled from "styled-components";
 import { updatePrices } from "../store/cryptoSlice";
-import { WebSocketSimulator } from "../services/WebSocketSimulator";
+import { BinanceWebSocket } from "../services/BinanceWebSocket";
 import { MiniChart } from './MiniChart';
 import { selectAssetsForTable } from '../store/selectors';
+import { FilterControls, SortField, SortDirection, FilterType } from './FilterControls';
+import { formatPrice, formatPercent, formatMarketCap, formatVolume } from '../utils/formatters';
 
 const TableContainer = styled.div`
   width: 100%;
@@ -23,31 +26,33 @@ const Table = styled.table`
 `;
 
 const Th = styled.th`
-  padding: 12px;
+  padding: 16px;
   text-align: left;
-  background: #f8f9fa;
-  border-bottom: 2px solid #dee2e6;
   font-weight: 600;
-  white-space: nowrap;
+  color: #666;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
 `;
 
 const Td = styled.td`
-  padding: 12px;
-  border-bottom: 1px solid #dee2e6;
-  vertical-align: middle;
-  white-space: nowrap;
+  padding: 16px;
+  border-bottom: 1px solid #e0e0e0;
+  color: #333;
 `;
 
-const CryptoRow = styled.tr`
-  &:hover {
-    background: #f8f9fa;
-  }
-`;
-
-const ChangeValue = styled.span<{ isPositive: boolean }>`
-  color: ${(props) => (props.isPositive ? "#16c784" : "#ea3943")};
-  display: inline-flex;
+const CoinInfo = styled.div`
+  display: flex;
   align-items: center;
+  gap: 8px;
+`;
+
+const CoinImage = styled.img`
+  width: 24px;
+  height: 24px;
+`;
+
+const ChangeValue = styled.span<{ value: number }>`
+  color: ${props => props.value > 0 ? '#16c784' : props.value < 0 ? '#ea3943' : '#333'};
 `;
 
 const Logo = styled.img`
@@ -98,78 +103,130 @@ const formatSupply = (supply: number | null): string => {
 export const CryptoTable = () => {
   const dispatch = useDispatch();
   const assets = useSelector(selectAssetsForTable);
+  const [sortField, setSortField] = useState<SortField>('marketCap');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [filterType, setFilterType] = useState<FilterType>('all');
 
   useEffect(() => {
-    const ws = new WebSocketSimulator((updates) => {
+    const ws = new BinanceWebSocket((updates) => {
       dispatch(updatePrices(updates));
     });
     ws.connect();
     return () => ws.disconnect();
   }, [dispatch]);
 
+  const filteredAndSortedData = useMemo(() => {
+    let filtered = [...assets];
+
+    // Apply filter
+    if (filterType === 'gainers') {
+      filtered = filtered.filter(coin => coin.change24h > 0);
+    } else if (filterType === 'losers') {
+      filtered = filtered.filter(coin => coin.change24h < 0);
+    }
+
+    // Apply sort
+    filtered.sort((a, b) => {
+      const aValue = a[sortField];
+      const bValue = b[sortField];
+      const modifier = sortDirection === 'asc' ? 1 : -1;
+
+      if (aValue < bValue) return -1 * modifier;
+      if (aValue > bValue) return 1 * modifier;
+      return 0;
+    });
+
+    return filtered;
+  }, [assets, sortField, sortDirection, filterType]);
+
+  const handleSortChange = (field: SortField, direction: SortDirection) => {
+    setSortField(field);
+    setSortDirection(direction);
+  };
+
+  const handleFilterChange = (filter: FilterType) => {
+    setFilterType(filter);
+  };
+
   return (
-    <TableContainer>
-      <Table>
-        <thead>
-          <tr>
-            <Th>#</Th>
-            <Th>Name</Th>
-            <Th>Price</Th>
-            <Th>1h %</Th>
-            <Th>24h %</Th>
-            <Th>7d %</Th>
-            <Th>Market Cap</Th>
-            <Th>Volume(24h)</Th>
-            <Th>Circulating Supply</Th>
-            <Th>Max Supply</Th>
-            <Th>Last 7 Days</Th>
-          </tr>
-        </thead>
-        <tbody>
-          {assets.map((asset) => (
-            <CryptoRow key={asset.id}>
-              <Td>{asset.id}</Td>
-              <Td>
-                <NameCell>
-                  <Logo src={asset.logo} alt={asset.name} />
-                  {asset.name}
-                  <Symbol>{asset.symbol}</Symbol>
-                </NameCell>
-              </Td>
-              <Td>{formatCurrency(asset.price)}</Td>
-              <Td>
-                <ChangeValue isPositive={asset.change1h >= 0}>
-                  {asset.change1h > 0 ? "↑" : "↓"} {Math.abs(asset.change1h)}%
-                </ChangeValue>
-              </Td>
-              <Td>
-                <ChangeValue isPositive={asset.change24h >= 0}>
-                  {asset.change24h > 0 ? "↑" : "↓"} {Math.abs(asset.change24h)}%
-                </ChangeValue>
-              </Td>
-              <Td>
-                <ChangeValue isPositive={asset.change7d >= 0}>
-                  {asset.change7d > 0 ? "↑" : "↓"} {Math.abs(asset.change7d)}%
-                </ChangeValue>
-              </Td>
-              <Td>{formatLargeNumber(asset.marketCap)}</Td>
-              <Td>{formatLargeNumber(asset.volume24h)}</Td>
-              <Td>
-                {formatNumber(asset.circulatingSupply)}M {asset.symbol}
-              </Td>
-              <Td>
-                {formatSupply(asset.maxSupply)}
-              </Td>
-              <Td>
-                <MiniChart 
-                  data={asset.chartData} 
-                  color={asset.change7d >= 0 ? '#16c784' : '#ea3943'} 
-                />
-              </Td>
-            </CryptoRow>
-          ))}
-        </tbody>
-      </Table>
-    </TableContainer>
+    <>
+      <FilterControls
+        sortField={sortField}
+        sortDirection={sortDirection}
+        filterType={filterType}
+        onSortChange={handleSortChange}
+        onFilterChange={handleFilterChange}
+      />
+      <TableContainer>
+        <Table>
+          <thead>
+            <tr>
+              <Th>#</Th>
+              <Th>Name</Th>
+              <Th>Price</Th>
+              <Th>1h %</Th>
+              <Th>24h %</Th>
+              <Th>7d %</Th>
+              <Th>Market Cap</Th>
+              <Th>Volume(24h)</Th>
+              <Th>Circulating Supply</Th>
+              <Th>Max Supply</Th>
+              <Th>Last 7 Days</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredAndSortedData.map((asset) => (
+              <tr key={asset.id}>
+                <Td>{asset.id}</Td>
+                <Td>
+                  <CoinInfo>
+                    {/* <CoinImage src={asset.logo} alt={asset.name} /> */}
+                    <div>
+                      <div>
+                        <NameCell>
+                          <Logo src={asset.logo} alt={asset.name} />
+                          {asset.name}
+                          <Symbol>{asset.symbol}</Symbol>
+                        </NameCell>
+                      </div>
+                    </div>
+                  </CoinInfo>
+                </Td>
+                <Td>{formatCurrency(asset.price)}</Td>
+                <Td>
+                  <ChangeValue value={asset.change1h}>
+                    {formatPercent(asset.change1h)}
+                  </ChangeValue>
+                </Td>
+                <Td>
+                  <ChangeValue value={asset.change24h}>
+                    {formatPercent(asset.change24h)}
+                  </ChangeValue>
+                </Td>
+                <Td>
+                  <ChangeValue value={asset.change7d}>
+                    {formatPercent(asset.change7d)}
+                  </ChangeValue>
+                </Td>
+                <Td>{formatMarketCap(asset.marketCap)}</Td>
+                <Td>{formatVolume(asset.volume24h)}</Td>
+                <Td>
+                  {formatNumber(asset.circulatingSupply)}M {asset.symbol}
+                </Td>
+                <Td>
+                  {formatSupply(asset.maxSupply)}
+                </Td>
+                <Td>
+                  <MiniChart 
+                    data={asset.chartData} 
+                    color={asset.change7d >= 0 ? '#16c784' : '#ea3943'} 
+                  />
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </TableContainer>
+    </>
   );
 };

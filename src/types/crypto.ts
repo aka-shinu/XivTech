@@ -18,4 +18,13 @@ export interface CryptoState {
   assets: CryptoAsset[];
   loading: boolean;
   error: string | null;
+}
+
+export interface CryptoUpdate {
+  id: number;
+  price: number;
+  change1h: number;
+  change24h: number;
+  volume24h: number;
+  chartData: number[];
 } 

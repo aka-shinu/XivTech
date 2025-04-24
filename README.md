@@ -14,7 +14,7 @@ I've built a responsive table that displays 5 major cryptocurrencies (BTC, ETH, 
 
 - 🎨 A clean, responsive table layout that works well on different screen sizes
 - 🔄 Real-time price updates using Binance WebSocket API
-- 📊 Interactive charts showing 24-hour price trends
+- 📊 Interactive charts showing 7-day price trends
 - 🎯 Color-coded percentage changes (green for gains, red for losses)
 - 💾 State management with Redux Toolkit
 - 🔍 Search functionality to filter cryptocurrencies
@@ -38,7 +38,7 @@ The application displays:
 - Current price
 - Percentage changes (1h, 24h, 7d)
 - Market data (cap, volume, supply)
-- Interactive charts showing 24-hour price trends
+- Interactive charts showing 7-day price trends
 
 ### Real-Time Updates
 The application:
